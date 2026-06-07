@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>DeepSeek 角色扮演·世界书·头像卡</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0;
+            overflow: hidden;
+        }
+        @media (min-width: 640px) {
+            .app-container {
+                height: 90vh;
+                border-radius: 28px;
+                margin: 20px;
+            }
+        }
+        .top-bar { background: white; border-bottom: 1px solid #e9ecef; }
+        .role-row {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #f1f3f5;
+        }
+        .role-selector {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8f9fa;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+        .role-avatar-mini {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e9ecef;
+        }
+        #roleSelect {
+            flex: 1;
+            padding: 6px 4px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+        }
+        .icon-btn {
+            background: #f8f9fa;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 38px;
+            font-size: 18px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .action-row {
+            padding: 6px 16px;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            background: #fefefe;
+            flex-wrap: wrap;
+        }
+        .small-btn {
+            background: none;
+            border: none;
+            font-size: 13px;
+            color: #007aff;
+            padding: 6px 0;
+            cursor: pointer;
+        }
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message { max-width: 85%; display: flex; flex-direction: column; }
+        .user-message { align-self: flex-end; }
+        .ai-message { align-self: flex-start; }
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 20px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-bubble { background: #007aff; color: white; border-bottom-right-radius: 4px; }
+        .ai-bubble { background: #e9ecef; color: #1e2a3e; border-bottom-left-radius: 4px; }
+        .typing-indicator {
+            padding: 8px 16px;
+            background: #e9ecef;
+            border-radius: 20px;
+            display: inline-flex;
+            gap: 4px;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #6c757d;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+        @keyframes bounce { 0%,80%,100%{transform:scale(0.8)} 40%{transform:scale(1.2)} }
+        .input-area {
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .input-box {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #dee2e6;
+            border-radius: 30px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: none;
+        }
+        .send-btn {
+            background: #007aff;
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-card {
+            background: white;
+            width: 90%;
+            max-width: 420px;
+            border-radius: 24px;
+            padding: 24px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-card input, .modal-card textarea, .modal-card select {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            border: 1px solid #dee2e6;
+            border-radius: 16px;
+        }
+        .avatar-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .avatar-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 8px;
+            background: #e9ecef;
+        }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .world-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .modal-buttons button.primary { background: #007aff; color: white; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="top-bar">
+        <div class="role-row">
+            <div class="role-selector">
+                <img id="currentRoleAvatar" class="role-avatar-mini" src="" alt="avatar">
+                <select id="roleSelect"></select>
+            </div>
+            <button class="icon-btn" id="manageRolesBtn">📋</button>
+            <button class="icon-btn" id="resetChatBtn">🔄</button>
+        </div>
+        <div class="action-row">
+            <div class="action-group">
+                <button class="small-btn" id="userPersonaBtn">👤 我的人设</button>
+                <button class="small-btn" id="manageWorldsBtn">🌍 世界书</button>
+            </div>
+            <div class="action-group">
+                <button class="small-btn" id="exportRoleBtn">⬇️ 导出角色卡</button>
+                <button class="small-btn" id="importRoleBtn">⬆️ 导入角色卡</button>
+                <span id="worldIndicator" style="font-size:12px; color:#6c757d;">🌍 无世界</span>
+            </div>
+        </div>
+    </div>
+    <div class="chat-history" id="chatHistory">
+        <div class="message ai-message"><div class="bubble ai-bubble">👋 设置好你的人设和世界书，选择角色开始故事吧！</div></div>
+    </div>
+    <div class="input-area">
+        <textarea class="input-box" id="userInput" rows="1" placeholder="输入你的行动或对话..."></textarea>
+        <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+</div>
+<!-- 角色模态框 -->
+<div id="roleModal" class="modal">
+    <div class="modal-card">
+        <h3 id="modalTitle">角色卡</h3>
+        <div class="avatar-upload">
+            <div class="avatar-preview" id="avatarPreviewDiv"><img id="avatarPreviewImg" src=""></div>
+            <input type="file" id="roleAvatarInput" accept="image/*" style="font-size:12px;">
+        </div>
+        <input type="text" id="roleName" placeholder="角色名称">
+        <textarea id="rolePrompt" placeholder="角色人设"></textarea>
+        <textarea id="roleGreeting" placeholder="开场白（可选）"></textarea>
+        <select id="roleWorldId"><option value="">无关联世界</option></select>
+        <div class="modal-buttons">
+            <button id="cancelModalBtn">取消</button>
+            <button id="saveRoleBtn" class="primary">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 世界书管理模态框 -->
+<div id="worldModal" class="modal">
+    <div class="modal-card">
+        <h3>📖 世界书管理</h3>
+        <div id="worldsList"></div>
+        <button id="addWorldBtn" style="width:100%; margin-top:12px;">+ 新建世界</button>
+        <hr>
+        <button id="closeWorldModal" style="float:right;">关闭</button>
+    </div>
+</div>
+
+<!-- 编辑世界书模态框 -->
+<div id="editWorldModal" class="modal">
+    <div class="modal-card">
+        <h3 id="editWorldTitle">世界书</h3>
+        <input id="worldName" placeholder="世界名称">
+        <textarea id="worldContent" rows="5" placeholder="世界设定描述"></textarea>
+        <div class="modal-buttons">
+            <button id="cancelEditWorldBtn">取消</button>
+            <button id="saveWorldBtn" class="primary">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 用户人设模态框 -->
+<div id="userPersonaModal" class="modal">
+    <div class="modal-card">
+        <h3>👤 我的人设</h3>
+        <textarea id="userPersonaText" rows="5" placeholder="描述你自己的角色..."></textarea>
+        <div class="modal-buttons">
+            <button id="cancelPersonaBtn">取消</button>
+            <button id="savePersonaBtn" class="primary">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== 配置 ==========
+    const DEEPSEEK_API_KEY = '这里粘贴你的 DeepSeek API Key (sk-开头)';
+    const API_URL = 'https://api.deepseek.com/chat/completions';
+    const MODEL_NAME = 'deepseek-chat';
+    const MAX_HISTORY_TURNS = 10;
+
+    // ========== 数据结构 ==========
+    let roles = [];          // { id, name, prompt, greeting, worldId, avatar }
+    let worlds = [];        // { id, name, content }
+    let userPersona = '';
+    let currentRoleId = null;
+    let conversationHistory = [];
+    let isLoading = false;
+
+    // DOM 元素
+    const roleSelect = document.getElementById('roleSelect');
+    const currentRoleAvatar = document.getElementById('currentRoleAvatar');
+    const chatHistoryDiv = document.getElementById('chatHistory');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const manageRolesBtn = document.getElementById('manageRolesBtn');
+    const resetChatBtn = document.getElementById('resetChatBtn');
+    const userPersonaBtn = document.getElementById('userPersonaBtn');
+    const manageWorldsBtn = document.getElementById('manageWorldsBtn');
+    const exportRoleBtn = document.getElementById('exportRoleBtn');
+    const importRoleBtn = document.getElementById('importRoleBtn');
+    const worldIndicator = document.getElementById('worldIndicator');
+
+    // 模态框元素
+    const roleModal = document.getElementById('roleModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const roleNameInput = document.getElementById('roleName');
+    const rolePromptInput = document.getElementById('rolePrompt');
+    const roleGreetingInput = document.getElementById('roleGreeting');
+    const roleWorldIdSelect = document.getElementById('roleWorldId');
+    const roleAvatarInput = document.getElementById('roleAvatarInput');
+    const avatarPreviewImg = document.getElementById('avatarPreviewImg');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const saveRoleBtn = document.getElementById('saveRoleBtn');
+    let editingRoleId = null;
+
+    const worldModal = document.getElementById('worldModal');
+    const worldsListDiv = document.getElementById('worldsList');
+    const addWorldBtn = document.getElementById('addWorldBtn');
+    const closeWorldModal = document.getElementById('closeWorldModal');
+    const editWorldModal = document.getElementById('editWorldModal');
+    const editWorldTitle = document.getElementById('editWorldTitle');
+    const worldNameInput = document.getElementById('worldName');
+    const worldContentInput = document.getElementById('worldContent');
+    const cancelEditWorldBtn = document.getElementById('cancelEditWorldBtn');
+    const saveWorldBtn = document.getElementById('saveWorldBtn');
+    let editingWorldId = null;
+
+    const userPersonaModal = document.getElementById('userPersonaModal');
+    const userPersonaText = document.getElementById('userPersonaText');
+    const cancelPersonaBtn = document.getElementById('cancelPersonaBtn');
+    const savePersonaBtn = document.getElementById('savePersonaBtn');
+
+    // ========== 存储函数 ==========
+    function saveAllData() {
+        localStorage.setItem('deepseek_roles', JSON.stringify(roles));
+        localStorage.setItem('deepseek_worlds', JSON.stringify(worlds));
+        localStorage.setItem('deepseek_userPersona', userPersona);
+        localStorage.setItem('deepseek_currentRoleId', currentRoleId || '');
+    }
+
+    function loadAllData() {
+        const storedRoles = localStorage.getItem('deepseek_roles');
+        if (storedRoles) roles = JSON.parse(storedRoles);
+        const storedWorlds = localStorage.getItem('deepseek_worlds');
+        if (storedWorlds) worlds = JSON.parse(storedWorlds);
+        const storedPersona = localStorage.getItem('deepseek_userPersona');
+        if (storedPersona) userPersona = storedPersona;
+        const storedRoleId = localStorage.getItem('deepseek_currentRoleId');
+        if (storedRoleId && roles.some(r => r.id == storedRoleId)) currentRoleId = parseInt(storedRoleId);
+        else if (roles.length > 0) currentRoleId = roles[0].id;
+        else currentRoleId = null;
+
+        if (!roles.length) {
+            roles.push({
+                id: Date.now(),
+                name: '神秘旅人',
+                prompt: '你是一位游历四方的神秘旅人，见多识广，说话温和且充满哲理。',
+                greeting: '星辰指引我们相遇，你有什么想探讨的吗？',
+                worldId: '',
+                avatar: ''
+            });
+        }
+        if (!worlds.length) {
+            worlds.push({
+                id: Date.now(),
+                name: '默认世界·静谧森林',
+                content: '这是一个被古老森林覆盖的世界，精灵与人类共存，魔法来源于自然之灵。'
+            });
+        }
+        saveAllData();
+    }
+
+    function saveConversation() {
+        if (currentRoleId) {
+            const key = `deepseek_history_${currentRoleId}`;
+            const limited = conversationHistory.slice(-MAX_HISTORY_TURNS * 2);
+            localStorage.setItem(key, JSON.stringify(limited));
+        }
+    }
+
+    function loadConversation() {
+        if (currentRoleId) {
+            const key = `deepseek_history_${currentRoleId}`;
+            const stored = localStorage.getItem(key);
+            conversationHistory = stored ? JSON.parse(stored) : [];
+            const currentRole = roles.find(r => r.id == currentRoleId);
+            if (conversationHistory.length === 0 && currentRole && currentRole.greeting) {
+                addMessageToHistory('assistant', currentRole.greeting);
+            }
+        } else {
+            conversationHistory = [];
+        }
+        renderChatHistory();
+        updateWorldIndicator();
+    }
+
+    function addMessageToHistory(role, content) {
+        conversationHistory.push({ role, content });
+        if (conversationHistory.length > MAX_HISTORY_TURNS * 2) {
+            conversationHistory = conversationHistory.slice(-MAX_HISTORY_TURNS * 2);
+        }
+        saveConversation();
+    }
+
+    function renderChatHistory() {
+        chatHistoryDiv.innerHTML = '';
+        if (!conversationHistory.length) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.className = 'message ai-message';
+            emptyMsg.innerHTML = `<div class="bubble ai-bubble">✨ 对话为空，发送消息开始你的冒险吧～</div>`;
+            chatHistoryDiv.appendChild(emptyMsg);
+        } else {
+            for (let msg of conversationHistory) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`;
+                const bubble = document.createElement('div');
+                bubble.className = `bubble ${msg.role === 'user' ? 'user-bubble' : 'ai-bubble'}`;
+                bubble.innerText = msg.content;
+                messageDiv.appendChild(bubble);
+                chatHistoryDiv.appendChild(messageDiv);
+            }
+        }
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+    }
+
+    function updateWorldIndicator() {
+        const role = roles.find(r => r.id == currentRoleId);
+        if (role && role.worldId) {
+            const world = worlds.find(w => w.id == role.worldId);
+            if (world) worldIndicator.innerText = `🌍 ${world.name}`;
+            else worldIndicator.innerText = `🌍 未知世界`;
+        } else {
+            worldIndicator.innerText = `🌍 无关联世界`;
+        }
+    }
+
+    function updateCurrentAvatar() {
+        const role = roles.find(r => r.id == currentRoleId);
+        if (role && role.avatar) currentRoleAvatar.src = role.avatar;
+        else currentRoleAvatar.src = '';
+    }
+
+    // 刷新角色下拉框
+    function refreshRoleSelect() {
+        roleSelect.innerHTML = '';
+        roles.forEach(role => {
+            const option = document.createElement('option');
+            option.value = role.id;
+            option.textContent = role.name;
+            if (currentRoleId == role.id) option.selected = true;
+            roleSelect.appendChild(option);
+        });
+        if (roles.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = '请创建角色';
+            option.disabled = true;
+            roleSelect.appendChild(option);
+        }
+        updateCurrentAvatar();
+    }
+
+    function switchToRole(roleId) {
+        currentRoleId = roleId;
+        saveAllData();
+        loadConversation();
+        refreshRoleSelect();
+        updateWorldIndicator();
+        updateCurrentAvatar();
+    }
+
+    function resetCurrentChat() {
+        conversationHistory = [];
+        const currentRole = roles.find(r => r.id == currentRoleId);
+        if (currentRole && currentRole.greeting) {
+            addMessageToHistory('assistant', currentRole.greeting);
+        } else {
+            addMessageToHistory('assistant', `✨ 对话已重置，可以开始和【${currentRole?.name || '角色'}】聊天了。`);
+        }
+        saveConversation();
+        renderChatHistory();
+    }
+    // ========== 角色管理 ==========
+    function openRoleModal(roleId = null) {
+        editingRoleId = roleId;
+        // 填充世界下拉框
+        roleWorldIdSelect.innerHTML = '<option value="">无关联世界</option>';
+        worlds.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w.id;
+            opt.textContent = w.name;
+            roleWorldIdSelect.appendChild(opt);
+        });
+        if (roleId === null) {
+            modalTitle.innerText = '新建角色卡';
+            roleNameInput.value = '';
+            rolePromptInput.value = '';
+            roleGreetingInput.value = '';
+            roleWorldIdSelect.value = '';
+            avatarPreviewImg.src = '';
+        } else {
+            const role = roles.find(r => r.id == roleId);
+            if (role) {
+                modalTitle.innerText = '编辑角色卡';
+                roleNameInput.value = role.name;
+                rolePromptInput.value = role.prompt;
+                roleGreetingInput.value = role.greeting || '';
+                roleWorldIdSelect.value = role.worldId || '';
+                avatarPreviewImg.src = role.avatar || '';
+            }
+        }
+        roleModal.style.display = 'flex';
+    }
+
+    function saveRoleFromModal() {
+        const name = roleNameInput.value.trim();
+        const prompt = rolePromptInput.value.trim();
+        const greeting = roleGreetingInput.value.trim();
+        const worldId = roleWorldIdSelect.value;
+        let avatar = avatarPreviewImg.src;
+        if (!name) { alert('请输入角色名称'); return; }
+        if (!prompt) { alert('请输入角色人设'); return; }
+        if (editingRoleId === null) {
+            const newId = Date.now();
+            roles.push({ id: newId, name, prompt, greeting, worldId, avatar });
+            if (!currentRoleId) currentRoleId = newId;
+        } else {
+            const idx = roles.findIndex(r => r.id == editingRoleId);
+            if (idx !== -1) {
+                roles[idx].name = name;
+                roles[idx].prompt = prompt;
+                roles[idx].greeting = greeting;
+                roles[idx].worldId = worldId;
+                if (avatar) roles[idx].avatar = avatar;
+                if (currentRoleId == editingRoleId) updateWorldIndicator();
+            }
+        }
+        saveAllData();
+        refreshRoleSelect();
+        roleModal.style.display = 'none';
+        if (currentRoleId && editingRoleId === null && currentRoleId === roles[roles.length-1].id) {
+            loadConversation();
+        } else if (currentRoleId && editingRoleId === currentRoleId) {
+            loadConversation();
+        }
+        updateCurrentAvatar();
+    }
+
+    function deleteCurrentRole() {
+        if (!currentRoleId) return;
+        if (roles.length <= 1) {
+            alert('至少保留一个角色，请先创建新角色再删除');
+            return;
+        }
+        if (confirm(`删除角色“${roles.find(r=>r.id==currentRoleId).name}”？其对话历史也会丢失。`)) {
+            const idx = roles.findIndex(r => r.id == currentRoleId);
+            roles.splice(idx, 1);
+            currentRoleId = roles[0].id;
+            saveAllData();
+            loadConversation();
+            refreshRoleSelect();
+            updateWorldIndicator();
+            updateCurrentAvatar();
+        }
+    }
+
+    // 头像上传预览
+    roleAvatarInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { avatarPreviewImg.src = ev.target.result; };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // ========== 世界书管理 ==========
+    function renderWorldsList() {
+        worldsListDiv.innerHTML = '';
+        if (worlds.length === 0) {
+            worldsListDiv.innerHTML = '<div style="text-align:center; color:#999;">暂无世界书，点击下方创建</div>';
+            return;
+        }
+        worlds.forEach(world => {
+            const div = document.createElement('div');
+            div.className = 'world-item';
+            div.innerHTML = `
+                <span class="world-name">📖 ${escapeHtml(world.name)}</span>
+                <div class="world-actions">
+                    <button data-action="edit" data-id="${world.id}">✏️</button>
+                    <button data-action="delete" data-id="${world.id}">🗑️</button>
+                </div>
+            `;
+            worldsListDiv.appendChild(div);
+        });
+        document.querySelectorAll('[data-action="edit"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(btn.dataset.id);
+                openEditWorldModal(id);
+            });
+        });
+        document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(btn.dataset.id);
+                if (confirm('删除世界书后，关联的角色将失去世界设定，确定吗？')) {
+                    worlds = worlds.filter(w => w.id !== id);
+                    roles.forEach(r => { if (r.worldId == id) r.worldId = ''; });
+                    saveAllData();
+                    renderWorldsList();
+                    if (currentRoleId) updateWorldIndicator();
+                    refreshRoleSelect();
+                }
+            });
+        });
+    }
+
+    function openEditWorldModal(worldId = null) {
+        editingWorldId = worldId;
+        if (worldId === null) {
+            editWorldTitle.innerText = '新建世界书';
+            worldNameInput.value = '';
+            worldContentInput.value = '';
+        } else {
+            const world = worlds.find(w => w.id == worldId);
+            if (world) {
+                editWorldTitle.innerText = '编辑世界书';
+                worldNameInput.value = world.name;
+                worldContentInput.value = world.content;
+            }
+        }
+        editWorldModal.style.display = 'flex';
+    }
+
+    function saveWorldFromModal() {
+        const name = worldNameInput.value.trim();
+        const content = worldContentInput.value.trim();
+        if (!name) { alert('请输入世界名称'); return; }
+        if (!content) { alert('请输入世界设定描述'); return; }
+        if (editingWorldId === null) {
+            worlds.push({ id: Date.now(), name, content });
+        } else {
+            const idx = worlds.findIndex(w => w.id == editingWorldId);
+            if (idx !== -1) {
+                worlds[idx].name = name;
+                worlds[idx].content = content;
+            }
+        }
+        saveAllData();
+        editWorldModal.style.display = 'none';
+        renderWorldsList();
+        refreshRoleSelect();
+        if (currentRoleId) updateWorldIndicator();
+    }
+
+    // ========== 用户人设 ==========
+    function openUserPersonaModal() {
+        userPersonaText.value = userPersona;
+        userPersonaModal.style.display = 'flex';
+    }
+    function saveUserPersona() {
+        userPersona = userPersonaText.value.trim();
+        saveAllData();
+        userPersonaModal.style.display = 'none';
+    }
+
+    // ========== 导出/导入角色卡 ==========
+    function exportRoleCard() {
+        const role = roles.find(r => r.id == currentRoleId);
+        if (!role) { alert('请先选择一个角色'); return; }
+        const roleCard = {
+            version: 1,
+            name: role.name,
+            prompt: role.prompt,
+            greeting: role.greeting,
+            avatar: role.avatar || '',
+            world: null
+        };
+        if (role.worldId) {
+            const world = worlds.find(w => w.id == role.worldId);
+            if (world) roleCard.world = { name: world.name, content: world.content };
+        }
+        const dataStr = JSON.stringify(roleCard, null, 2);
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${role.name}.rolecard`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importRoleCard() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.rolecard';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const card = JSON.parse(ev.target.result);
+                    if (!card.name || !card.prompt) throw new Error('无效的角色卡文件');
+                    let worldId = '';
+                    if (card.world && card.world.name && card.world.content) {
+                        let existingWorld = worlds.find(w => w.name === card.world.name);
+                        if (!existingWorld) {
+                            const newWorld = { id: Date.now(), name: card.world.name, content: card.world.content };
+                            worlds.push(newWorld);
+                            saveAllData();
+                            existingWorld = newWorld;
+                        }
+                        worldId = existingWorld.id;
+                    }
+                    const newId = Date.now();
+                    const newRole = {
+                        id: newId,
+                        name: card.name,
+                        prompt: card.prompt,
+                        greeting: card.greeting || '',
+                        worldId: worldId,
+                        avatar: card.avatar || ''
+                    };
+                    roles.push(newRole);
+                    saveAllData();
+                    refreshRoleSelect();
+                    switchToRole(newId);
+                    alert(`成功导入角色：${card.name}`);
+                } catch (err) {
+                    alert('解析角色卡失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    // ========== AI 调用 ==========
+    async function callDeepSeek(userMessage) {
+        const currentRole = roles.find(r => r.id == currentRoleId);
+        if (!currentRole) throw new Error('未选择角色');
+        let systemContent = '';
+        if (currentRole.worldId) {
+            const world = worlds.find(w => w.id == currentRole.worldId);
+            if (world && world.content) systemContent += `【世界设定】\n${world.content}\n\n`;
+        }
+        if (userPersona && userPersona.trim() !== '') {
+            systemContent += `【用户人设】\n${userPersona}\n\n`;
+        }
+        systemContent += `【角色人设】\n${currentRole.prompt}\n\n请严格按照以上设定扮演角色，不要跳出角色，不要提到你是AI。`;
+        const messages = [{ role: 'system', content: systemContent }];
+        for (let msg of conversationHistory) messages.push({ role: msg.role, content: msg.content });
+        messages.push({ role: 'user', content: userMessage });
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_API_KEY}` },
+            body: JSON.stringify({ model: MODEL_NAME, messages, stream: false, temperature: 0.8, max_tokens: 2000 })
+        });
+        if (!response.ok) {
+            let errMsg = `HTTP ${response.status}`;
+            try { const errData = await response.json(); errMsg = errData.error?.message || errMsg; } catch(e) {}
+            throw new Error(`API错误: ${errMsg}`);
+        }
+        const data = await response.json();
+        if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        else throw new Error('API返回数据异常');
+    }
+
+    async function sendMessage() {
+        const userMessage = userInput.value.trim();
+        if (!userMessage) return;
+        if (isLoading) return;
+        if (!currentRoleId) { alert('请先创建或选择一个角色'); return; }
+        addMessageToHistory('user', userMessage);
+        renderChatHistory();
+        userInput.value = '';
+        userInput.style.height = 'auto';
+        isLoading = true;
+        sendBtn.disabled = true;
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message ai-message';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = `<div class="typing-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+        chatHistoryDiv.appendChild(typingDiv);
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        try {
+            const aiReply = await callDeepSeek(userMessage);
+            document.getElementById('typingIndicator')?.remove();
+            addMessageToHistory('assistant', aiReply);
+            renderChatHistory();
+        } catch (err) {
+            document.getElementById('typingIndicator')?.remove();
+            addMessageToHistory('assistant', `❌ 出错: ${err.message}`);
+            renderChatHistory();
+            console.error(err);
+        } finally {
+            isLoading = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // ========== 事件绑定 ==========
+    manageRolesBtn.addEventListener('click', () => {
+        const action = prompt('角色管理：\n1 新建角色\n2 编辑当前角色\n3 删除当前角色');
+        if (action === '1') openRoleModal(null);
+        else if (action === '2') { if (currentRoleId) openRoleModal(currentRoleId); else alert('无选中角色'); }
+        else if (action === '3') deleteCurrentRole();
+    });
+    resetChatBtn.addEventListener('click', () => { if (confirm('重置当前角色的对话？')) resetCurrentChat(); });
+    userPersonaBtn.addEventListener('click', openUserPersonaModal);
+    manageWorldsBtn.addEventListener('click', () => { renderWorldsList(); worldModal.style.display = 'flex'; });
+    exportRoleBtn.addEventListener('click', exportRoleCard);
+    importRoleBtn.addEventListener('click', importRoleCard);
+    closeWorldModal.addEventListener('click', () => worldModal.style.display = 'none');
+    addWorldBtn.addEventListener('click', () => { openEditWorldModal(null); });
+    cancelEditWorldBtn.addEventListener('click', () => editWorldModal.style.display = 'none');
+    saveWorldBtn.addEventListener('click', saveWorldFromModal);
+    cancelPersonaBtn.addEventListener('click', () => userPersonaModal.style.display = 'none');
+    savePersonaBtn.addEventListener('click', saveUserPersona);
+    cancelModalBtn.addEventListener('click', () => roleModal.style.display = 'none');
+    saveRoleBtn.addEventListener('click', saveRoleFromModal);
+    roleSelect.addEventListener('change', (e) => {
+        const newId = parseInt(e.target.value);
+        if (newId !== currentRoleId) switchToRole(newId);
+    });
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+    userInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px'; });
+    [roleModal, worldModal, editWorldModal, userPersonaModal].forEach(modal => {
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    });
+
+    // 初始化
+    loadAllData();
+    if (!currentRoleId && roles.length) currentRoleId = roles[0].id;
+    refreshRoleSelect();
+    loadConversation();
+    updateWorldIndicator();
+    updateCurrentAvatar();
+</script>
+</body>
+</html>
